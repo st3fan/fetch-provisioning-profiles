@@ -1,11 +1,24 @@
 name: 'Your name here'
 description: 'Provide a description here'
 author: 'Your name or organization here'
+
 inputs:
-  milliseconds: # change this
+  appstore-connect-api-key:
+    description: 'The AppStore Connect API Key. Base64 encoded. Sensitive, needs to be stored in a secret.'
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+  appstore-connect-api-key-id:
+    description: 'The AppStore Connect API Key ID.'
+    required: true
+  appstore-connect-api-issuer:
+    description: 'The AppStore Connect API Issuer.'
+    required: true
+
+  profile-type:
+    description: 'The profile type to fetch or generate (IOS_APP_DEVELOPMENT, IOS_APP_STORE, MAC_APP_DEVELOPMENT, MAC_APP_DIRECT, MAC_APP_STORE)'
+  bundle-identifiers:
+    description: 'Bundle identifiers for which to fetch Provisioning Profiled for. Comma or newline separated.'
+    required: true
+
 runs:
   using: 'node12'
   main: 'dist/index.js'
