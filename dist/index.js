@@ -609,6 +609,7 @@ const path = __importStar(__webpack_require__(622));
 const core = __importStar(__webpack_require__(186));
 const appstoreconnect_1 = __webpack_require__(641);
 const bundleIds_1 = __webpack_require__(661);
+const certificates_1 = __webpack_require__(307);
 const supportedProfileTypes = [
     appstoreconnect_1.ProfileType.IOS_APP_DEVELOPMENT,
     appstoreconnect_1.ProfileType.IOS_APP_STORE,
@@ -616,6 +617,97 @@ const supportedProfileTypes = [
     appstoreconnect_1.ProfileType.MAC_APP_DIRECT,
     appstoreconnect_1.ProfileType.MAC_APP_STORE
 ];
+function findProfile(client, bundleId, profileType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const listProfilesResponse = yield client.listProfiles();
+        if (listProfilesResponse !== null) {
+            for (const profile of listProfilesResponse.data) {
+                if (profile.attributes.name === 'DevBots: Mac App Development Profile: ca.hogtownsoftware.examples.HelloMac.HelloMac') {
+                    return profile;
+                }
+            }
+        }
+        return null;
+    });
+}
+function createProfile(client, bundleId, profileType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(bundleId, null, 2));
+        const certificates = [];
+        if (profileType === appstoreconnect_1.ProfileType.MAC_APP_DEVELOPMENT || profileType === appstoreconnect_1.ProfileType.IOS_APP_DEVELOPMENT) {
+            const listCertificatesResponse = yield client.listCertificates();
+            // eslint-disable-next-line no-console
+            console.log(JSON.stringify(listCertificatesResponse, null, 2));
+            if (listCertificatesResponse !== null) {
+                for (const certificate of listCertificatesResponse === null || listCertificatesResponse === void 0 ? void 0 : listCertificatesResponse.data) {
+                    if (certificate.attributes.certificateType === certificates_1.CertificateType.DEVELOPMENT) {
+                        certificates.push({ type: 'certificates', id: certificate.id });
+                        // TODO Not checking this because certificate.attributes.platform is null ?
+                        // if (profileType === ProfileType.MAC_APP_DEVELOPMENT && certificate.attributes.platform === BundleIdPlatform.MAC_OS) {
+                        //   certificates.push({type: 'certificates', id: certificate.id})
+                        // }
+                        // if (profileType === ProfileType.IOS_APP_DEVELOPMENT && certificate.attributes.platform === BundleIdPlatform.IOS) {
+                        //   certificates.push({type: 'certificates', id: certificate.id})
+                        // }
+                    }
+                }
+            }
+            if (certificates.length === 0) {
+                throw Error(`Profile type ${profileType} requires registered development certificates.`);
+            }
+        }
+        const devices = [];
+        if (profileType === appstoreconnect_1.ProfileType.MAC_APP_DEVELOPMENT || profileType === appstoreconnect_1.ProfileType.IOS_APP_DEVELOPMENT) {
+            const listDevicesResponse = yield client.listDevices();
+            // eslint-disable-next-line no-console
+            console.log(JSON.stringify(listDevicesResponse, null, 2));
+            if (listDevicesResponse !== null) {
+                for (const device of listDevicesResponse === null || listDevicesResponse === void 0 ? void 0 : listDevicesResponse.data) {
+                    if (profileType === appstoreconnect_1.ProfileType.MAC_APP_DEVELOPMENT && device.attributes.platform === bundleIds_1.BundleIdPlatform.MAC_OS) {
+                        devices.push({ type: 'devices', id: device.id });
+                    }
+                    if (profileType === appstoreconnect_1.ProfileType.IOS_APP_DEVELOPMENT && device.attributes.platform === bundleIds_1.BundleIdPlatform.IOS) {
+                        devices.push({ type: 'devices', id: device.id });
+                    }
+                }
+            }
+            if (devices.length === 0) {
+                throw Error(`Profile type ${profileType} requires registered development devices.`);
+            }
+        }
+        const profileCreateRequest = {
+            data: {
+                type: 'profiles',
+                attributes: {
+                    name: `DevBots: Mac App Development Profile: ${bundleId.attributes.identifier}`,
+                    profileType
+                },
+                relationships: {
+                    bundleId: {
+                        data: {
+                            type: 'bundleIds',
+                            id: bundleId.id
+                        }
+                    },
+                    certificates: {
+                        data: certificates,
+                    },
+                    devices: {
+                        data: devices
+                    }
+                }
+            }
+        };
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(profileCreateRequest, null, 2));
+        const createProfileResult = yield client.createProfile(profileCreateRequest);
+        if (createProfileResult === null) {
+            throw Error(`Failed to create profile for ${bundleId.attributes.identifier}`);
+        }
+        return createProfileResult.data;
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -644,37 +736,20 @@ function run() {
                 if (profileType.startsWith('IOS_APP_') && ![bundleIds_1.BundleIdPlatform.MAC_OS, bundleIds_1.BundleIdPlatform.UNIVERSAL].includes(bundleId.attributes.platform)) {
                     throw Error(`Cannot use profile-type <${profileType}> with bundleId platform <${bundleId.attributes.platform}>`);
                 }
-                const profileCreateRequest = {
-                    data: {
-                        type: 'profiles',
-                        attributes: {
-                            name: `DevBots: iOS App Store Profile: ${identifier}`,
-                            profileType
-                        },
-                        relationships: {
-                            bundleId: {
-                                data: {
-                                    type: 'bundleIds',
-                                    id: bundleId.id
-                                }
-                            },
-                            certificates: {
-                                data: [] // TODO Do we need the distribution certificate here?
-                            }
-                        }
-                    }
-                };
-                const createProfileResult = yield client.createProfile(profileCreateRequest);
-                if (createProfileResult === null) {
-                    throw Error(`Failed to create profile for ${identifier}`);
+                let profile = yield findProfile(client, bundleId, profileType);
+                if (profile === null) {
+                    profile = yield createProfile(client, bundleId, profileType);
                 }
-                const decodedProfile = Buffer.from(createProfileResult.data.attributes.profileContent, 'base64');
+                const decodedProfile = Buffer.from(profile.attributes.profileContent, 'base64');
                 const provisioningProfilesPath = path.join(os.homedir(), 'Library/MobileDevice/Provisioning Profiles');
-                const profileExtension = bundleId.attributes.platform === bundleIds_1.BundleIdPlatform.MAC_OS ? 'provisionprofile' : 'mobileprovision';
-                const profileName = `${createProfileResult.data.attributes.uuid}.${profileExtension}`;
+                // TODO Find out if this actually matters - maybe xcodebuild doesn't care
+                const profileExtension = bundleId.attributes.platform === bundleIds_1.BundleIdPlatform.MAC_OS || bundleId.attributes.platform === bundleIds_1.BundleIdPlatform.UNIVERSAL
+                    ? 'provisionprofile'
+                    : 'mobileprovision';
+                const profileName = `devbotsxyz-${profile.attributes.uuid}.${profileExtension}`;
                 core.info(`Creating ${provisioningProfilesPath}`);
                 fs.mkdirSync(provisioningProfilesPath, { recursive: true });
-                core.info(`Writing <${profileType}> provisioning profile for <${identifier}> to <${path}>`);
+                core.info(`Writing <${profileType}> provisioning profile for <${identifier}> to <${profileName}>`);
                 fs.writeFileSync(path.join(provisioningProfilesPath, profileName), decodedProfile);
             }
         }
@@ -3030,6 +3105,29 @@ module.exports = isNumber;
 
 /***/ }),
 
+/***/ 307:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.CertificateType = void 0;
+var CertificateType;
+(function (CertificateType) {
+    CertificateType["IOS_DEVELOPMENT"] = "IOS_DEVELOPMENT";
+    CertificateType["IOS_DISTRIBUTION"] = "IOS_DISTRIBUTION";
+    CertificateType["MAC_APP_DISTRIBUTION"] = "MAC_APP_DISTRIBUTION";
+    CertificateType["MAC_INSTALLER_DISTRIBUTION"] = "MAC_INSTALLER_DISTRIBUTION";
+    CertificateType["MAC_APP_DEVELOPMENT"] = "MAC_APP_DEVELOPMENT";
+    CertificateType["DEVELOPER_ID_KEXT"] = "DEVELOPER_ID_KEXT";
+    CertificateType["DEVELOPER_ID_APPLICATION"] = "DEVELOPER_ID_APPLICATION";
+    CertificateType["DEVELOPMENT"] = "DEVELOPMENT";
+    CertificateType["DISTRIBUTION"] = "DISTRIBUTION";
+})(CertificateType = exports.CertificateType || (exports.CertificateType = {}));
+
+
+/***/ }),
+
 /***/ 327:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -3950,6 +4048,12 @@ class DefaultAppStoreConnectClient {
         return __awaiter(this, void 0, void 0, function* () {
             const client = this.createClient();
             return yield this.get(client, `https://api.appstoreconnect.apple.com/v1/bundleIds/${id}`);
+        });
+    }
+    listDevices() {
+        return __awaiter(this, void 0, void 0, function* () {
+            const client = this.createClient();
+            return yield this.list(client, `https://api.appstoreconnect.apple.com/v1/devices`);
         });
     }
     createClient() {
