@@ -23,7 +23,7 @@ async function run(): Promise<void> {
       throw Error(`Invalid profile-type <${profileType}>; only <${supportedProfileTypes.join(', ')}> are currently supported.`)
     }
 
-    const bundleIdentifiers = core.getInput('bundle-identifier', {required: true})
+    const bundleIdentifiers = core.getInput('bundle-identifiers', {required: true}).split(',')
 
     // We don't search properly using the API so we simply grab all available bundle ids now.
     const listBundleIdsResponse = await client.listBundleIds()
