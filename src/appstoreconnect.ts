@@ -8,7 +8,7 @@ import {BundleId, BundleIdPlatform} from './internal/models/bundleIds'
 function credentialsFromInputs(): AppStoreConnectCredentials {
   const encodedKey = core.getInput('appstore-connect-api-key', {required: true})
   const key = Buffer.from(encodedKey, 'base64').toString()
-  const keyId = core.getInput('appstore-connect-key-id', {required: true})
+  const keyId = core.getInput('appstore-connect-api-key-id', {required: true})
   const issuer = core.getInput('appstore-connect-api-issuer', {required: true})
   return {key, keyId, issuer}
 }
