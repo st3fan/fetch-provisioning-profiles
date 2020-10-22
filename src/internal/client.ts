@@ -7,6 +7,7 @@ import {Profile, ProfileCreateRequest} from './models/profiles'
 import {ResultList, Result} from './models/result'
 import {Certificate} from './models/certificates'
 import {BundleId} from './models/bundleIds'
+import {Device} from './models/devices'
 import {AppStoreConnectCredentials} from './credentials'
 
 export interface AppStoreConnectClient {
@@ -32,6 +33,8 @@ export interface AppStoreConnectClient {
   listBundleIds(): Promise<ResultList<BundleId> | null>
 
   getBundleId(id: string): Promise<Result<BundleId> | null>
+
+  listDevices(): Promise<ResultList<Device> | null>
 }
 
 export class DefaultAppStoreConnectClient implements AppStoreConnectClient {
@@ -77,6 +80,11 @@ export class DefaultAppStoreConnectClient implements AppStoreConnectClient {
   async getBundleId(id: string): Promise<Result<BundleId> | null> {
     const client = this.createClient()
     return await this.get<BundleId>(client, `https://api.appstoreconnect.apple.com/v1/bundleIds/${id}`)
+  }
+
+  async listDevices(): Promise<ResultList<Device> | null> {
+    const client = this.createClient()
+    return await this.list<Device>(client, `https://api.appstoreconnect.apple.com/v1/devices`)
   }
 
   createClient(): HttpClient {

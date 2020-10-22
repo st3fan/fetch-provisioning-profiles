@@ -1,5 +1,7 @@
 import {BundleIdPlatform} from './bundleIds'
 import {PagingInformation, Links} from './common'
+import {DeviceRelationship} from './devices'
+import {CertificateRelationship} from './certificates'
 
 export enum ProfileState {
   ACTIVE = 'ACTIVE',
@@ -65,6 +67,7 @@ export interface Profile {
 
 export interface ProfileCreateRequest {
   data: {
+    type: 'profiles'
     attributes: {
       name: string
       profileType: ProfileType
@@ -76,19 +79,12 @@ export interface ProfileCreateRequest {
           type: 'bundleIds'
         }
       }
-      certificates: {
-        data: {
-          id: string
-          type: 'certificates'
-        }[]
+      certificates?: {
+        data: CertificateRelationship[]
+      }
+      devices?: {
+        data: DeviceRelationship[]
       }
     }
-    devices?: {
-      data: {
-        id: string
-        type: string
-      }[]
-    }
-    type: 'profiles'
   }
 }

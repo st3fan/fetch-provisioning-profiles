@@ -27,3 +27,8 @@ export interface Certificate {
   }
   links: ResourceLinks
 }
+
+export interface CertificateRelationship {
+  type: 'certificates'
+  id: string
+}
