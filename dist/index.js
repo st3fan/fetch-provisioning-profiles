@@ -740,13 +740,14 @@ function run() {
                 if (profile === null) {
                     profile = yield createProfile(client, bundleId, profileType);
                 }
+                // Write it to disk
                 const decodedProfile = Buffer.from(profile.attributes.profileContent, 'base64');
                 const provisioningProfilesPath = path.join(os.homedir(), 'Library/MobileDevice/Provisioning Profiles');
                 // TODO Find out if this actually matters - maybe xcodebuild doesn't care
                 const profileExtension = bundleId.attributes.platform === bundleIds_1.BundleIdPlatform.MAC_OS || bundleId.attributes.platform === bundleIds_1.BundleIdPlatform.UNIVERSAL
                     ? 'provisionprofile'
                     : 'mobileprovision';
-                const profileName = `devbotsxyz-${profile.attributes.uuid}.${profileExtension}`;
+                const profileName = `${profile.attributes.uuid}.${profileExtension}`;
                 core.info(`Creating ${provisioningProfilesPath}`);
                 fs.mkdirSync(provisioningProfilesPath, { recursive: true });
                 core.info(`Writing <${profileType}> provisioning profile for <${identifier}> to <${profileName}>`);
