@@ -752,6 +752,8 @@ function run() {
                 fs.mkdirSync(provisioningProfilesPath, { recursive: true });
                 core.info(`Writing <${profileType}> provisioning profile for <${identifier}> to <${profileName}>`);
                 fs.writeFileSync(path.join(provisioningProfilesPath, profileName), decodedProfile);
+                // Testing if the extension is important or not
+                fs.writeFileSync(path.join(provisioningProfilesPath, `${profile.attributes.uuid}.mobileprovision`), decodedProfile);
             }
         }
         catch (error) {
