@@ -179,9 +179,6 @@ async function run(): Promise<void> {
 
       core.info(`Writing <${profileType}> provisioning profile for <${identifier}> to <${profileName}>`)
       fs.writeFileSync(path.join(provisioningProfilesPath, profileName), decodedProfile)
-
-      // Testing if the extension is important or not
-      fs.writeFileSync(path.join(provisioningProfilesPath, `${profile.attributes.uuid}.mobileprovision`), decodedProfile)
     }
   } catch (error) {
     core.setFailed(error.message)
