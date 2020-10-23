@@ -149,6 +149,7 @@ async function run(): Promise<void> {
       }
 
       // Make sure the platform matches. With watchOS and tvOS this is probably more complicated, but we can save that for later.
+
       if (profileType.startsWith('IOS_APP_') && ![BundleIdPlatform.IOS, BundleIdPlatform.UNIVERSAL].includes(bundleId.attributes.platform)) {
         throw Error(`Cannot use profile-type <${profileType}> with bundleId platform <${bundleId.attributes.platform}>`)
       }
@@ -161,6 +162,8 @@ async function run(): Promise<void> {
         profile = await createProfile(client, bundleId, profileType)
       }
 
+      // Write it to disk
+
       const decodedProfile = Buffer.from(profile.attributes.profileContent, 'base64')
 
       const provisioningProfilesPath = path.join(os.homedir(), 'Library/MobileDevice/Provisioning Profiles')
@@ -169,7 +172,7 @@ async function run(): Promise<void> {
         bundleId.attributes.platform === BundleIdPlatform.MAC_OS || bundleId.attributes.platform === BundleIdPlatform.UNIVERSAL
           ? 'provisionprofile'
           : 'mobileprovision'
-      const profileName = `devbotsxyz-${profile.attributes.uuid}.${profileExtension}`
+      const profileName = `${profile.attributes.uuid}.${profileExtension}`
 
       core.info(`Creating ${provisioningProfilesPath}`)
       fs.mkdirSync(provisioningProfilesPath, {recursive: true})
